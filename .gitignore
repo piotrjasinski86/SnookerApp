@@ -1,0 +1,26 @@
+# macOS system files
+.DS_Store
+
+# VSCode settings (if you use it)
+.vscode/
+
+# Node modules (not needed now, but good practice if you add npm packages)
+node_modules/
+
+# Logs
+*.log
+
+# Bundled output files (optional — if you have any)
+bundle.js
+bundle.txt
+
+# OS trash
+*.swp
+*.swo
+*.tmp
+
+# Video demo files — do not upload large .mp4 to repo
+*.mp4
+
+# Zip archives (if you export your code as .zip)
+*.zip
