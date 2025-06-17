@@ -30,20 +30,34 @@ Below is my progress log, organized by **Phases** from my high-level plan.
 
 ### **Phase 2: Build Core Structure**
 
-- [ ] **Define variables for table, pockets, balls, cue**
-- [ ] **Implement table drawing with correct dimensions**
-- [ ] **Draw baulk line and D zone**
-- [ ] **Calculate pocket positions and sizes**
+- [x] **Defined key variables for table dimensions, pockets, baulk line, D zone radius, spots**
+- [x] **Calculated pocket positions and sizes based on ball dimensions**
+- [x] **Implemented table drawing with realistic 2:1 ratio**
+- [x] **Added wooden table border for visual realism**
+- [x] **Drew baulk line vertically with accurate placement**
+- [x] **Drew the D zone semi-circle on the baulk side**
+- [x] **Placed colored ball spots correctly along table length**
+- [x] **Verified visual layout matches official snooker table layout**
 
 ---
 
 ### **Phase 3: Ball Mechanics**
 
-- [ ] **Create red balls array and colored balls array**
-- [ ] **Implement Mode 1 (starting position, key `1`)**
-- [ ] **Implement Mode 2 (random positions, key `2`)**
-- [ ] **Implement Mode 3 (random reds, key `3`)**
-- [ ] **Assign physics properties (restitution, friction)**
+- [x] **Created arrays for red balls and colored balls**
+- [x] **Implemented Mode 1 (starting position, key `1`)**  
+      - All reds in triangle, colored balls on official spots, pink and triangle spacing are authentic
+- [x] **Implemented Mode 2 (random positions, key `2`)**  
+      - Reds and exactly one of each colored ball appear at random valid positions (no duplicates)
+- [x] **Implemented Mode 3 (random reds, key `3`)**  
+      - Reds at random, colored balls on correct spots
+- [x] **All balls have correct Matter.js physics properties**  
+      - Restitution and friction for realistic bounce and rolling
+- [x] **Cushions have physics bodies for proper collision/bounce**
+- [x] **Gravity disabled — balls only move if hit**
+- [x] **All ball drawing uses authentic snooker colors**
+- [x] **Pocket positions fixed for snooker (side pockets at center of long cushions)**
+- [x] **No red dot confusion — colored spots are small, subtle, and dark, only for colored balls (matches real tables)**
+- [x] **No errors or visual overlap in any mode**
 
 ---
 
