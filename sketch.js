@@ -42,7 +42,7 @@ let shotInProgress = false;
 let powerBarMax = 120;       // Power bar pixel length
 
 let allStoppedTimestamp = null;    // When did all balls stop
-let cueLagMs = 5;                // Milliseconds lag before cue shows
+let cueLagMs = 200;                // Milliseconds lag before cue shows
 
 
 // --- Setup ---

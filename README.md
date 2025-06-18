@@ -63,9 +63,25 @@ Below is my progress log, organized by **Phases** from my high-level plan.
 
 ### **Phase 4: Cue Implementation**
 
-- [ ] **Draw cue stick**
-- [ ] **Implement mouse + keyboard aiming and striking**
-- [ ] **Cue ball must be placed by player inside D**
+- [x] **Draw cue stick**
+  - Cue stick rendered with correct orientation and realistic tip/gap
+  - Only visible when cue ball is placed and all balls have stopped (with a short delay for realism)
+- [x] **Cue ball must be placed by player inside D**
+  - Player can place and reposition cue ball in D zone before first shot
+  - Semi-transparent cue ball while placing, turns opaque when placed
+  - Repositioning allowed any time balls are at rest
+- [x] **Mouse + keyboard aiming and striking**
+  - Cue aims from white ball toward mouse position
+  - Shot power set with mouse wheel, constrained to realistic range
+  - Power bar shown below cue ball
+  - Shot taken by pressing Space bar
+  - Cue stick and power bar hidden while balls are moving
+- [x] **Shot lag implementation**
+  - Cue and power bar only appear after a short pause once all balls stop, for improved realism
+- [x] **Physics and user feedback**
+  - Shot force proportional to power bar value
+  - Visual feedback for shot strength (percentage display)
+
 
 ---
 
