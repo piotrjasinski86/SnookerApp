@@ -42,7 +42,14 @@ let shotInProgress = false;
 let powerBarMax = 120;       // Power bar pixel length
 
 let allStoppedTimestamp = null;    // When did all balls stop
-let cueLagMs = 200;                // Milliseconds lag before cue shows
+let cueLagMs = 3100;                // Milliseconds lag before cue shows
+
+//no balls in the pocket 
+let lastPocketedType = null;
+
+let foulMessage = "";
+let foulTimestamp = 0; // when the foul was triggered
+let foulDuration = 2000; // show for 2 seconds
 
 
 // --- Setup ---
@@ -81,6 +88,34 @@ function setup() {
   isDraggingCueBall = false;
   setCueBallPosition(baulkLineX - dRadius, height / 2);
 
+  // --- NEW: Cue ball collision detection ---
+Matter.Events.on(engine, 'collisionStart', function(event) {
+  for (let pair of event.pairs) {
+    let a = pair.bodyA;
+    let b = pair.bodyB;
+
+    if (a === cueBall || b === cueBall) {
+      let other = (a === cueBall) ? b : a;
+
+      if (redBalls.includes(other)) {
+        console.log("Collision: cue–red");
+      } else if (colouredBalls.includes(other)) {
+        console.log("Collision: cue–color");
+        // ✅ Foul if any reds remain!
+        if (redBalls.length > 0) {
+          foulMessage = "FOUL: Hit color first while reds remain!";
+          foulTimestamp = millis();
+          console.log("Foul triggered.");
+        }
+      } else if (cushions.includes(other)) {
+        console.log("Collision: cue–cushion");
+      } else {
+        console.log("Collision: cue–unknown");
+      }
+    }
+  }
+});
+
 }
 
 // --- Draw ---
@@ -94,6 +129,8 @@ function draw() {
   Engine.update(engine);
 
   drawBalls();
+
+  checkPocketing();
 
   // -- Detect transitions for shotInProgress --
   let ballsMoving = isAnyBallMoving();
@@ -113,11 +150,20 @@ function draw() {
   let canShowCue = !isPlacingCueBall &&
                    !shotInProgress &&
                    allStoppedTimestamp &&
-                   (millis() - allStoppedTimestamp > cueLagMs);1
+                   (millis() - allStoppedTimestamp > cueLagMs);
 
   if (canShowCue) {
+    drawAimLine();    // ✅ NEW: prediction line
     drawCueStick();
     drawPowerBar();
+  }
+
+  // --- Draw foul message if any ---
+  if (millis() - foulTimestamp < foulDuration && foulMessage !== "") {
+    textAlign(CENTER, CENTER);
+    textSize(32);
+    fill(255, 0, 0);
+    text(foulMessage, width / 2, 50);
   }
 }
 
@@ -169,7 +215,7 @@ function defineCushions() {
   let bottom = height / 2 + tableWidth / 2;
   let thickness = 20;
 
-  let options = { isStatic: true, restitution: 0.8 };
+  let options = { isStatic: true, restitution: 0.85 };
 
   cushions.push(Bodies.rectangle(left - thickness / 2, height / 2, thickness, tableWidth + thickness, options));
   cushions.push(Bodies.rectangle(right + thickness / 2, height / 2, thickness, tableWidth + thickness, options));
@@ -511,25 +557,28 @@ function drawPowerBar() {
   let barX = cueBall.position.x;
   let barY = cueBall.position.y + 40;
   let w = powerBarMax;
-  let h = 12;
+  let h = 16; // Slightly taller for clarity
 
-  // Background
+  // --- Background capsule ---
+  fill(255); // white rounded background
   noStroke();
-  fill(40, 40, 40, 160);
-  rect(barX - w/2, barY, w, h, 6);
+  rect(barX - w/2, barY, w, h, h/2); // rounded corners
 
-  // Foreground (red)
-  fill(255, 0, 0, 200);
-  rect(barX - w/2, barY, w * shotPower, h, 6);
+  // --- Fill (red) ---
+  fill(255, 0, 0); 
+  let fw = w * shotPower;
+  rect(barX - w/2, barY, fw, h, h/2);
 
-  // Outline
-  stroke(255);
+  // --- Outline (optional, subtle) ---
+  stroke(0);
+  strokeWeight(1);
   noFill();
-  rect(barX - w/2, barY, w, h, 6);
+  rect(barX - w/2, barY, w, h, h/2);
 
-  // Optional: Show numeric value
+  // --- Percentage text ---
   noStroke();
-  fill(255); textAlign(CENTER, CENTER);
+  fill(0); // black text for contrast
+  textAlign(CENTER, CENTER);
   text((shotPower * 100).toFixed(0) + '%', barX, barY + h/2);
 }
 
@@ -572,7 +621,180 @@ function mouseWheel(event) {
   }
 }
 
+function checkPocketing() {
+  let allBalls = [cueBall].concat(redBalls, colouredBalls);
 
+  for (let b of allBalls) {
+    for (let p of pockets) {
+      let d = dist(b.position.x, b.position.y, p.x, p.y);
+      if (d < pocketRadius) {
+        handlePocketedBall(b);
+        break; // No need to check other pockets for this ball
+      }
+    }
+  }
+}
 
+function handlePocketedBall(b) {
+  if (b === cueBall) {
+    isPlacingCueBall = true;
+    setCueBallPosition(baulkLineX - dRadius, height / 2);
+    Matter.Body.setVelocity(cueBall, { x: 0, y: 0 });
+    lastPocketedType = null; // reset
+    console.log("Cue ball pocketed → reposition inside D");
+  } else if (redBalls.includes(b)) {
+    World.remove(world, b);
+    redBalls = redBalls.filter(rb => rb !== b);
+    lastPocketedType = "red";
+    console.log("Red ball pocketed → removed");
+  } else if (colouredBalls.includes(b)) {
+    // ✅ Extra: prevent jitter by removing residual force too:
+    Matter.Body.setAngularVelocity(b, 0);
+    let key = getColorKey(b.snookerColor);
+    let spot = spots[key];
+    Matter.Body.setPosition(b, { x: spot.x, y: spot.y });
+    Matter.Body.setVelocity(b, { x: 0, y: 0 });
+    if (lastPocketedType === "coloured") {
+      console.log("ERROR: Two colored balls pocketed consecutively!");
+    }
+    lastPocketedType = "coloured";
+    console.log("Colored ball pocketed → re-spotted");
+  }
+}
 
+function getColorKey(col) {
+  if (col.toString() === color(255, 255, 0).toString()) return "yellow";
+  if (col.toString() === color(0, 128, 0).toString()) return "green";
+  if (col.toString() === color(139, 69, 19).toString()) return "brown";
+  if (col.toString() === color(0, 0, 255).toString()) return "blue";
+  if (col.toString() === color(255, 20, 147).toString()) return "pink";
+  if (col.toString() === color(0, 0, 0).toString()) return "black";
+  return "";
+}
 
+function drawAimLine() {
+  if (!cueBall || isPlacingCueBall) return;
+
+  let cuePos = cueBall.position;
+  let angle = atan2(mouseY - cuePos.y, mouseX - cuePos.x);
+  let dir = createVector(cos(angle), sin(angle));
+  let currentPos = createVector(cuePos.x, cuePos.y);
+
+  let maxBounces = 5; // Limit bounces to avoid infinite loops
+  let currentDir = dir.copy();
+
+  stroke(255);
+  strokeWeight(2);
+  drawingContext.setLineDash([5, 10]); // Dotted line style
+
+  for (let bounce = 0; bounce < maxBounces; bounce++) {
+    let hit = findClosestHit(currentPos, currentDir);
+
+    if (hit) {
+      line(currentPos.x, currentPos.y, hit.point.x, hit.point.y);
+
+      if (hit.type === 'cushion') {
+        currentDir = reflect(currentDir, hit.normal);
+        currentPos = hit.point.copy();
+      } else if (hit.type === 'ball') {
+        // Mark hit point
+        fill(255, 0, 0);
+        noStroke();
+        ellipse(hit.point.x, hit.point.y, 10);
+        break;
+      }
+    } else {
+      // No hit: extend far
+      let farPoint = p5.Vector.add(currentPos, p5.Vector.mult(currentDir, 1000));
+      line(currentPos.x, currentPos.y, farPoint.x, farPoint.y);
+      break;
+    }
+  }
+
+  drawingContext.setLineDash([]); // Reset dash
+}
+
+function findClosestHit(origin, dir) {
+  let minDist = Infinity;
+  let closest = null;
+
+  // Check cushions
+  for (let c of cushions) {
+    let hit = rayRectIntersection(origin, dir, c);
+    if (hit && hit.dist < minDist) {
+      minDist = hit.dist;
+      closest = { type: 'cushion', point: hit.point, normal: hit.normal };
+    }
+  }
+
+  // Check balls
+  for (let b of redBalls.concat(colouredBalls)) {
+    let hit = rayCircleIntersection(origin, dir, b.position, ballRadius);
+    if (hit && hit.dist < minDist) {
+      minDist = hit.dist;
+      closest = { type: 'ball', point: hit.point };
+    }
+  }
+
+  return closest;
+}
+
+function reflect(v, n) {
+  let dot = v.dot(n);
+  return p5.Vector.sub(v, p5.Vector.mult(n, 2 * dot));
+}
+
+function rayCircleIntersection(origin, dir, center, radius) {
+  let oc = p5.Vector.sub(origin, createVector(center.x, center.y));
+  let a = dir.dot(dir);
+  let b = 2 * oc.dot(dir);
+  let c = oc.dot(oc) - radius * radius;
+  let discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return null;
+  let t = (-b - sqrt(discriminant)) / (2 * a);
+  if (t > 0.001) {
+    let point = p5.Vector.add(origin, p5.Vector.mult(dir, t));
+    return { point: point, dist: t };
+  }
+  return null;
+}
+
+function rayRectIntersection(origin, dir, rectBody) {
+  let vertices = rectBody.vertices;
+  let minDist = Infinity;
+  let hitPoint = null;
+  let normal = null;
+
+  for (let i = 0; i < 4; i++) {
+    let p1 = createVector(vertices[i].x, vertices[i].y);
+    let p2 = createVector(vertices[(i + 1) % 4].x, vertices[(i + 1) % 4].y);
+    let hit = rayLineIntersection(origin, dir, p1, p2);
+    if (hit && hit.dist < minDist) {
+      minDist = hit.dist;
+      hitPoint = hit.point;
+      let edgeDir = p5.Vector.sub(p2, p1).normalize();
+      normal = createVector(-edgeDir.y, edgeDir.x); // Perpendicular
+    }
+  }
+
+  if (hitPoint) return { point: hitPoint, dist: minDist, normal: normal };
+  return null;
+}
+
+function rayLineIntersection(origin, dir, p1, p2) {
+  let v1 = p5.Vector.sub(origin, p1);
+  let v2 = p5.Vector.sub(p2, p1);
+  let v3 = createVector(-dir.y, dir.x);
+
+  let dot = v2.dot(v3);
+  if (abs(dot) < 0.000001) return null;
+
+  let t1 = v2.cross(v1) / dot;
+  let t2 = v1.dot(v3) / dot;
+
+  if (t1 >= 0 && t2 >= 0 && t2 <= 1) {
+    let point = p5.Vector.add(origin, p5.Vector.mult(dir, t1));
+    return { point: point, dist: t1 };
+  }
+  return null;
+}

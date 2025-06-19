@@ -87,12 +87,33 @@ Below is my progress log, organized by **Phases** from my high-level plan.
 
 ### **Phase 5: Gameplay Logic**
 
-- [ ] **Cushions have realistic bounce**
-- [ ] **Pocketing balls removes them properly**
-- [ ] **Cue ball re-inserted when pocketed**
-- [ ] **Colored balls re-spotted**
-- [ ] **Error prompt if two colored balls potted consecutively**
-- [ ] **Collision detection shows correct impact type**
+- [x] **Cushions have realistic bounce**
+  - All table cushions use `restitution: 0.85` for realistic bounce behavior.
+  - Tuned and tested for snooker-style deflection.
+
+- [x] **Pocketing balls removes them properly**
+  - Red balls are removed from the `redBalls` array and the Matter.js world when pocketed.
+  - Cue ball and colored balls are handled separately (see below).
+
+- [x] **Cue ball re-inserted when pocketed**
+  - If the cue ball is pocketed, player is forced to re-place it interactively inside the D zone.
+  - Velocity is reset to zero for clean repositioning.
+
+- [x] **Colored balls re-spotted**
+  - When a colored ball is pocketed, it is automatically moved back to its original spot.
+  - Angular velocity and speed are reset to avoid drifting.
+
+- [x] **Error prompt if two colored balls are potted consecutively**
+  - Implemented tracking for last pocketed ball type.
+  - If a player pockets two colored balls in a row without potting a red in between, an error message is shown in the console and can be displayed on-screen.
+
+- [x] **Collision detection shows correct impact type**
+  - Uses Matter.js `collisionStart` to detect collisions involving the cue ball.
+  - Logs to console: 
+    - `cue–red` when cue ball hits a red.
+    - `cue–color` when cue ball hits a colored ball.
+    - `cue–cushion` when cue ball hits a cushion.
+  - Additional foul logic: if the cue ball hits a colored ball first while reds remain, a visible **FOUL** message appears on screen for 2 seconds.
 
 ---
 
@@ -106,9 +127,14 @@ Below is my progress log, organized by **Phases** from my high-level plan.
 
 ### **Phase 7: Extension**
 
-- [ ] **Design & implement a unique gameplay extension**
+- [x] **Designed and implemented a unique aim prediction feature**
+- [x] **Dotted line shows shot direction from the cue ball**
+- [x] **Line bounces realistically off cushions**
+- [x] **Line stops when it would hit a red or colored ball**
+- [x] **Implemented realistic reflection logic for cushions**
+- [x] **Helper functions for ray–cushion and ray–ball detection**
+- [x] **Fully integrated into main draw loop**
 - [ ] **Write explanation in commentary**
-
 ---
 
 ### **Phase 8: Finalize & Deliver**
@@ -124,7 +150,6 @@ Below is my progress log, organized by **Phases** from my high-level plan.
 
 This README acts as:
 - A **progress log** for myself  
-- A **context file** for ChatGPT sessions (I paste updates when I want help)
 - A **guide** for remaining steps
 
 ---
